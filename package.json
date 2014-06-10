@@ -1,0 +1,40 @@
+{
+  "name": "scout",
+  "description": "Hack on your project easily.",
+  "version": "0.0.1",
+  "homepage": "",
+  "author": {
+    "name": "John Leonard",
+    "email": "thejohnleonard@gmail.com",
+    "url": "TODO"
+  },
+  "repository": {
+    "type": "git",
+    "url": "TODO"
+  },
+  "bugs": {
+    "url": "TODO"
+  },
+  "licenses": [
+    {
+      "type": "TODO",
+      "url": "TODO"
+    }
+  ],
+  "main": ".bin/scout.js",
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "bin": {
+    "scout": "./bin/scout.js"
+  },
+  "keywords": [
+    "command line",
+    "task runner"
+  ],
+  "dependencies": {
+    "findup-sync": "~0.1.3"
+  },
+  "devDependencies": {},
+  "preferGlobal": "true"
+}
