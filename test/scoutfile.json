@@ -6,9 +6,9 @@
     "src",
     "src/less",
     "boom/bash/dash",
-    "src/shit"
+    "src/shit",
+    {"jam":"https://github.com/jleonard/brainless"},
+    {"src/brainless":"https://github.com/jleonard/brainless"}
   ],
-  "bower":{
-
-  }
+  "bower":["jquery","brainless"]
 }

@@ -14,6 +14,7 @@ if (configFile) {
   json = JSON.parse(fs.readFileSync(configFile));
   hooks('pre');
   makeFolders();
+  bower();
   hooks('post');
   cwd = path.dirname(configFile);
   process.chdir(cwd);
@@ -47,28 +48,52 @@ function hooks(hook){
 }
 
 function makeFolders(){
-  console.log('makeFolders ');
+  function firstKey(cur){
+    for(var a in cur){ return a};
+  }
   var arr = json.hasOwnProperty('directories') ? json.directories : [];
-  console.log(arr);
   var len = arr.length;
   for(var ii = 0; ii < len; ii++){
     var cur = arr[ii];
-    if(fs.existsSync(cur)){
-      console.log('The directory ',cur, ' already exists.');
+    var makeDir = typeof(cur) === 'string';
+    var _path = makeDir ? cur : firstKey(cur);
+
+    if(fs.existsSync(_path)){
+      console.log('The directory ',_path, ' already exists.');
     }else{
-      mkdirp(cur, function (err) {
-        if (err) console.error(err)
-        else console.log('pow!')
-      });
-      /*
-      fs.mkdir(cur,function(e){
-        if(e){
-          console.log('error ',e);
-        }else{
-          console.log('created directory: ',cur);
-        }
-      });
-    */
+      if(makeDir){
+        mkdirp(_path, function (err) {
+          if (err) console.error(err)
+          else console.log('pow!')
+        });
+      }else{
+        var repo = json.directories[ii][_path];
+        var statement = "git clone "+repo+" "+_path+" && rm -r "+_path+"/.git";
+        var spawn = shell(statement,[]);
+        spawn.stdout.on('data', function (data) {
+          console.log(data);
+        });
+
+        spawn.stderr.on('data', function (data) {
+          console.log('ERROR: ' + data);
+        });
+      }
     }
+  }
+}
+
+function bower(){
+  var packages = json.hasOwnProperty('bower') && json.bower instanceof Array ? json.bower : json.bower.packages;
+  var len = packages.length;
+  for(var ii = 0; ii < len; ii++){
+    var cur = packages[ii];
+    var spawn = shell('bower install '+cur,[]);
+    spawn.stdout.on('data', function (data) {
+      console.log(data);
+    });
+
+    spawn.stderr.on('data', function (data) {
+      console.log('ERROR: ' + data);
+    });
   }
 }
