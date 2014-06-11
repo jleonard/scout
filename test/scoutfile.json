@@ -1,0 +1,14 @@
+{
+	"hooks":{
+		"pre": ["pwd","ls"]
+	},
+  "directories":[
+    "src",
+    "src/less",
+    "boom/bash/dash",
+    "src/shit"
+  ],
+  "bower":{
+
+  }
+}

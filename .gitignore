@@ -1,0 +1,14 @@
+# osx noise
+.DS_Store
+profile
+
+# svn & cvs
+.svn
+CVS
+
+*.log
+node_modules
+
+# project specific
+.vagrant
+bower_components
