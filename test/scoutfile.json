@@ -1,12 +1,16 @@
 {
+  "hooks": {"pre":["pwd && ls"],"post":["git clone https://github.com/jleonard/web-box.git vm"]},
+  "directories":[
+    "dist/hi",
+    {"docs/template":"https://github.com/jleonard/app-template"}
+  ],
   "files":[
     "src/md/README.md",
-    "src/.gitignore",
-    "https://raw.github.com/jleonard/brainless/master/less/demo.css",
-    "https://raw.github.com/jleonard/brainless/master/less/mixins/animation.less"
+    {"src/css/":"https://raw.github.com/jleonard/brainless/master/less/demo.css"},
+    {"src/md/jamzone.md":"#hello jamzone!"}
   ],
-  "dependencies":{
-    "bower": ["jquery","brainless"],
-    "npm" : {"path":"build/shit","packages":["chalk","redis"]}
+  "dependencies": {
+    "npm": {"packages":["chalk"],"directory":"npm-dir"},
+    "bower": ["jquery","brainless"]
   }
 }

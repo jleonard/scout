@@ -9,7 +9,6 @@ var mkdirp        = require('mkdirp');
 var chalk         = require('chalk');
 var userArguments = process.argv.slice(2);
 var https = require('follow-redirects').https;
-var shellBusy = false;
 var json;
 
 var configFile = findup('scoutfile.json', { cwd: cwd });
@@ -25,12 +24,23 @@ if (configFile) {
   cwd = path.dirname(configFile);
   process.chdir(cwd);
 
-  hooks('pre');
-  makeFolders();
-  files();
-  makeFiles();
-  installDependencies();
-  hooks('post');
+  async.series({
+    pre: function(callback){
+      hooks('pre',function(err){ callback(null,null) });
+    },
+    directories: function(callback){
+      directories(function(err){ callback(null,null) });
+    },
+    files: function(callback){
+      files(function(err){ callback(null,null) });
+    },
+    files: function(callback){
+      dependencies(function(err){ callback(null,null) });
+    },
+    post: function(callback){
+      hooks('post',function(err){ callback(null,null) });
+    },
+  });
 
 } else {
   // no config file found? we're done here.
@@ -38,114 +48,169 @@ if (configFile) {
   process.exit(1);
 }
 
-/*
- * Runs the pre and post hooks.
- */
-function hooks(hook){
+function hooks(hook,complete){
   var arr = json.hasOwnProperty("hooks") && json.hooks.hasOwnProperty(hook) ? json["hooks"][hook] : [];
-  var len = arr.length;
-  if(len > 0){
-    console.log( chalk.white.bgGreen.bold(' Running',hook,'hook... ') );
-  }
-  for(var ii = 0; ii < len; ii++){
-    var cur = arr[ii];
-    runShellCommand(cur);
-  }
-}
-
-function makeFolders(){
-  var arr = json.hasOwnProperty('directories') ? json.directories : [];
-  var len = arr.length;
-  for(var ii = 0; ii < len; ii++){
-    var cur = arr[ii];
-    var makeDir = typeof(cur) === 'string';
-    var _path = makeDir ? cur : firstKeyInObject(cur);
-
-    if(fs.existsSync(_path)){
-      console.log(chalk.yellow('The directory',_path, 'already exists.'));
-    }else{
-      if(makeDir){
-        generatePath(_path,function(){});
-      }else{
-        var repo = json.directories[ii][_path];
-        var statement = "git clone "+repo+" "+_path+" && rm -r "+_path+"/.git";
-        runShellCommand(statement);
-      }
-    }
-  }
-}
-
-function files(){
-  var arr = json.hasOwnProperty('files') ? json.files : [];
   async.eachSeries(
     arr,
     function(item,callback){
-      console.log('item ',item);
-      callback();
+      runShellCommand(item,{},function(code,signal){
+        var err = code === 0 ? code : null;
+        callback(err);
+      });
     },
     function(err){
-      console.log('done!');
+      complete(err);
     }
   );
 }
 
-function makeFiles(){
-  var arr = json.hasOwnProperty('files') ? json.files : [];
-  var len = arr.length;
-  for(var ii = 0; ii < len; ii++){
-    var cur = arr[ii];
-    var makeEmptyFile = cur.indexOf('github.com') <= -1;
-    if(makeEmptyFile){
-      // if the file exists let's get out of here.
-      if(fs.existsSync(_file)){
-        console.log(chalk.yellow('The file',_file, 'already exists.'));
-        continue;
-      }
-      var _file = makeEmptyFile ? cur : firstKeyInObject(cur);
-      generateFile(_file,'',function(err){});
-    }
-
-    if(!makeEmptyFile){
-      var url = cur.replace('https://github.com/','https://raw.githubusercontent.com/').replace('/blob/master/','/master/');
-      runShellCommand('curl -O -L --fail --silent --show-error '+url);
-    }
-
-  }
-}
-
-function installDependencies(){
+function dependencies(complete){
+  var arr = json.hasOwnProperty('dependencies') ? json.dependencies : [];
   var fileDictionary = {'npm':'package.json','bower':'bower.json'};
-  var deps = json.hasOwnProperty('dependencies') ? json.dependencies : {};
-  var value;
-  var options;
-  var jsonFile;
-  var command;
-  
-  for (var key in deps){
-    if (deps.hasOwnProperty(key)){
-      value = deps[key];
-      options = value.hasOwnProperty('path') ? {'cwd':value.path} : {};
-      jsonFile = value.hasOwnProperty('path') ? value.path+'/'+fileDictionary[key] : jsonFile = fileDictionary[key];
-      command = '';
-
-      if(value.hasOwnProperty('packages')){
-        command = key+" install --save "+value.packages.join(' ');
-      }else if(value instanceof Array){
-        command = key+" install --save "+value.join(' ');
+  async.eachSeries(
+    Object.keys(arr),
+    function(key,callback){
+      var item = arr[key];
+      var options = {};
+      var directory = item.directory;
+      var args = item.hasOwnProperty(args) ? item.args : '';
+      var packages = item instanceof Array ? item : item.packages;
+      var command;
+      if(typeof(packages) === 'undefined'){
+        console.log(chalk.yellow('No',key,'packages defined'));
+        callback();
+      }else{
+        command = key + ' install --save ' + args + packages.join(' ');
       }
 
-      if(!fs.existsSync(jsonFile)){
-        console.log('make file ',jsonFile);
-        generateFile(jsonFile,'{"name":"my-project"}',function(err){
-          runShellCommand(command,options);
+      if(directory){
+        options.cwd = directory;
+      }else{
+        directory = '';
+      }
+
+      var _path = path.join(directory,fileDictionary[key]);
+
+      if(fs.existsSync(_path)){
+        console.log(chalk.yellow('The file',_path, 'already exists.'));
+        runShellCommand(command,options,function(code,signal){
+          var err = code === 0 ? code : null;
+          callback(err);
         });
       }else{
-        runShellCommand(command,options);
+        generateFile(_path,'{"name":"my-project"}',function(err){
+          runShellCommand(command,options,function(code,signal){
+            var err = code === 0 ? code : null;
+            callback(err); 
+          });
+        });
       }
 
+    },
+    function(err){
+      complete(err);
     }
-  }
+  );
 }
+
+function directories(complete){
+  var arr = json.hasOwnProperty('directories') ? json.directories : [];
+  async.eachSeries(
+    arr,
+    function(item,callback){
+      var makeDir = typeof(item) === 'string';
+
+      // folder exists. move on.
+      if(fs.existsSync(item)){
+        console.log(chalk.yellow('The directory',item, 'already exists.'));
+        callback();
+      }
+
+      if(makeDir){
+        generatePath(item,function(err){ callback(err); });
+      }else{
+        var key = firstKeyInObject(item);
+        var value = item[key];
+        if(fs.existsSync(key)){
+          console.log(chalk.yellow('The directory',key, 'already exists.'));
+          callback();
+        }else{
+          generatePath(key,function(err){
+            if(!err){
+              var statement = "git clone "+value+" "+key+" && rm -r "+key+"/.git";
+              runShellCommand(statement,{"cwd":key},function(code,signal){
+                var err = code === 0 ? code : null;
+                if(!err){
+                  console.log(chalk.green('Cloned',value,'into',key));
+                }else{
+                  console.log( chalk.white.bgRed.bold(' Error cloning ') , chalk.red(value));
+                }
+                callback(err);
+              });
+            }
+          });
+        }
+      }
+    },
+    function(err){
+      complete(err);
+    }
+  );
+}
+
+function files(complete){
+  var arr = json.hasOwnProperty('files') ? json.files : [];
+  async.eachSeries(
+    arr,
+    function(item,callback){
+      
+      // simple string. create an empty file if one doesn't already exist.
+      if(typeof(item) === 'string'){
+        if(fs.existsSync(item)){
+          console.log(chalk.yellow('The file',item, 'already exists.'));
+          callback();
+        }else{
+          generateFile(item,'',function(err){
+            callback(err);
+          });
+        }
+      }
+
+      // object. are we curling a github file or are we writing content to a file?
+      if(typeof(item) === 'object'){
+        var key = firstKeyInObject(item);
+        var value = item[key];
+
+        if(value.indexOf('github.com') <= -1){ // writing content to a file.
+          generateFile(key,value,function(err){
+            callback(err);
+          });
+        }else{ // curling from github
+          var url = value.replace('https://github.com/','https://raw.githubusercontent.com/').replace('/blob/master/','/master/');
+          generatePath(key,function(err){
+            if(!err){
+              runShellCommand('curl -O -L --fail --silent --show-error '+url,{'cwd':key},function(code,signal){
+                var err = code === 0 ? code : null;
+                if(!err){
+                  console.log(chalk.green('Cloned',value,'into',key));
+                }else{
+                  console.log( chalk.white.bgRed.bold(' Error cloning ') , chalk.red(value));
+                }
+                callback(err);
+              });
+            }else{
+              callback(err);
+            }
+          });
+        }
+      }
+    },
+    function(err){
+      complete(err);
+    }
+  );
+}
+
 
 function firstKeyInObject(obj){
   for(var a in obj){ return a};
@@ -177,6 +242,7 @@ function generateFile(_file,contents,cb){
           console.log( chalk.white.bgRed.bold(' Error ') , chalk.red(e));
           cb(err);
         }else{
+          console.log(chalk.green('Created ',_file));
           cb(null);
         }
       });
@@ -184,48 +250,24 @@ function generateFile(_file,contents,cb){
   });
 }
 
-var deferTask;
-function runShellCommand(c,options){
-  
-  if(shellBusy){
-    deferTask = {"command":c,"options":options};
-  }
-  shellBusy = true;
 
+function runShellCommand(c,options,cb){
   options = options || {};
   var spawn = shell(c,options,function(error,stdout,stderr){
     if(error){
       console.log( chalk.white.bgRed.bold(' Error ') , chalk.red(error));
-      //resetShell();
     }
     if(stdout){
       console.log(chalk.green(stdout));
-      //resetShell();
     }
     if(stderr){
       console.log( chalk.white.bgRed.bold(' Error ') , chalk.red(stderr));
-      //resetShell();
     }
   });
 
-  spawn.on('close',function(one,two){
-    console.log('closed ');
-    if(deferTask){
-      runShellCommand(deferTask.command,deferTask.options);
-    }
-    shellBusy = false;
+  spawn.on('close',function(code,signal){
+    cb(code,signal);
   });
   
 }
 
-/*
-function resetShell(){
-  console.log('resetShell ');
-  shellBusy = false;
-  if(deferTask){
-    console.log('running defer task ',deferTask.command);
-    runShellCommand(deferTask.command,deferTask.options);
-    deferTask = null;
-  }
-}
-*/
