@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+var async = require('async');
 var fs            = require('fs');
 var findup        = require('findup-sync');
 var path          = require('path');
@@ -26,6 +27,7 @@ if (configFile) {
 
   hooks('pre');
   makeFolders();
+  files();
   makeFiles();
   installDependencies();
   hooks('post');
@@ -71,6 +73,20 @@ function makeFolders(){
       }
     }
   }
+}
+
+function files(){
+  var arr = json.hasOwnProperty('files') ? json.files : [];
+  async.eachSeries(
+    arr,
+    function(item,callback){
+      console.log('item ',item);
+      callback();
+    },
+    function(err){
+      console.log('done!');
+    }
+  );
 }
 
 function makeFiles(){
