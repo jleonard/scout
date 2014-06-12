@@ -6,7 +6,7 @@
   ],
   "files":[
     "src/md/README.md",
-    {"src/css/":"https://raw.github.com/jleonard/brainless/master/less/demo.css"},
+    {"src/css/":"https://github.com/jleonard/scout/blob/master/test/scoutfile.json"},
     {"src/md/jamzone.md":"#hello jamzone!"}
   ],
   "dependencies": {
