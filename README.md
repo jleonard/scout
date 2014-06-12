@@ -28,15 +28,17 @@ Scout is a command line tool that uses a .json config file to scaffold a project
 ```
 
 ###Installation
-> Note: Scout isn't available on npm.
+> Note: The project isn't available on npm.
 
 1. ```git clone https://github.com/jleonard/scout.git```
 2. ```cd scout && npm link```
+3. Create a ``scoutfile.json`` in your project root.
+4. Configure the scoutfile and run ``scout``
 
 ###Configuration options
 
 ####dependencies
-Scout will download packages from npm and bower. There are two options for specifying dependencies.
+Download packages from npm and bower. There are two options for specifying dependencies.
 
 **Basic Installation:** In this example bower and npm will install dependencies relative to scout's cwd. Scout will create ``node_modules/``, ``bower_components/``, ``package.json`` and ``bower.json`` in the project root.
 ```js
