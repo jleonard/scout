@@ -8,6 +8,7 @@ var mkdirp        = require('mkdirp');
 var chalk         = require('chalk');
 var userArguments = process.argv.slice(2);
 var https = require('follow-redirects').https;
+var shellBusy = false;
 var json;
 
 var configFile = findup('scoutfile.json', { cwd: cwd });
@@ -118,6 +119,7 @@ function installDependencies(){
       }
 
       if(!fs.existsSync(jsonFile)){
+        console.log('make file ',jsonFile);
         generateFile(jsonFile,'{"name":"my-project"}',function(err){
           runShellCommand(command,options);
         });
@@ -166,17 +168,48 @@ function generateFile(_file,contents,cb){
   });
 }
 
+var deferTask;
 function runShellCommand(c,options){
+  
+  if(shellBusy){
+    deferTask = {"command":c,"options":options};
+  }
+  shellBusy = true;
+
   options = options || {};
   var spawn = shell(c,options,function(error,stdout,stderr){
     if(error){
       console.log( chalk.white.bgRed.bold(' Error ') , chalk.red(error));
+      //resetShell();
     }
     if(stdout){
       console.log(chalk.green(stdout));
+      //resetShell();
     }
     if(stderr){
       console.log( chalk.white.bgRed.bold(' Error ') , chalk.red(stderr));
+      //resetShell();
     }
   });
+
+  spawn.on('close',function(one,two){
+    console.log('closed ');
+    if(deferTask){
+      runShellCommand(deferTask.command,deferTask.options);
+    }
+    shellBusy = false;
+  });
+  
 }
+
+/*
+function resetShell(){
+  console.log('resetShell ');
+  shellBusy = false;
+  if(deferTask){
+    console.log('running defer task ',deferTask.command);
+    runShellCommand(deferTask.command,deferTask.options);
+    deferTask = null;
+  }
+}
+*/

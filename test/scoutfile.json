@@ -1,21 +1,4 @@
 {
-	"hooks":{
-		"pre": ["pwd","ls"],
-    "post": ["pwd"]
-	},
-  "directories":[
-    "src",
-    "src/less",
-    "src/js",
-    "src/img",
-    {"src/less/brainless":"https://github.com/jleonard/brainless"}
-  ],
-  "files":[
-    "src/md/README.md",
-    "src/.gitignore",
-    "https://raw.github.com/jleonard/brainless/master/less/demo.css",
-    "https://raw.github.com/jleonard/brainless/master/less/mixins/animation.less"
-  ],
   "dependencies":{
     "bower": ["jquery","brainless"],
     "npm" : {"path":"build/shit","packages":["chalk","redis"]}
