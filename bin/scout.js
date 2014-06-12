@@ -26,18 +26,33 @@ if (configFile) {
 
   async.series({
     pre: function(callback){
+      if(json.hasOwnProperty('hooks') && json.hooks.hasOwnProperty('pre')){
+        //console.log(chalk.white.bgGreen.bold('Running pre hooks'));
+      }
       hooks('pre',function(err){ callback(null,null) });
     },
     directories: function(callback){
+      if(json.hasOwnProperty('directories')){
+        //console.log(chalk.white.bgGreen.bold('Creating directories'));
+      }
       directories(function(err){ callback(null,null) });
     },
     files: function(callback){
+      if(json.hasOwnProperty('files')){
+        //console.log(chalk.white.bgGreen.bold('Creating files'));
+      }
       files(function(err){ callback(null,null) });
     },
-    files: function(callback){
+    dependencies: function(callback){
+      if(json.hasOwnProperty('dependencies')){
+        //console.log(chalk.white.bgGreen.bold('Installing dependencies'));
+      }
       dependencies(function(err){ callback(null,null) });
     },
     post: function(callback){
+      if(json.hasOwnProperty('hooks') && json.hooks.hasOwnProperty('pre')){
+        //console.log(chalk.white.bgGreen.bold('Running post hooks'));
+      }
       hooks('post',function(err){ callback(null,null) });
     },
   });
@@ -159,6 +174,7 @@ function directories(complete){
 }
 
 function files(complete){
+  console.log('files');
   var arr = json.hasOwnProperty('files') ? json.files : [];
   async.eachSeries(
     arr,
@@ -176,17 +192,20 @@ function files(complete){
         }
       }
 
+      console.log('not a string');
+
       // object. are we curling a github file or are we writing content to a file?
       if(typeof(item) === 'object'){
         var key = firstKeyInObject(item);
         var value = item[key];
-
+        console.log('key ',key,'value',value);
         if(value.indexOf('github.com') <= -1){ // writing content to a file.
           generateFile(key,value,function(err){
             callback(err);
           });
         }else{ // curling from github
           var url = value.replace('https://github.com/','https://raw.githubusercontent.com/').replace('/blob/master/','/master/');
+          console.log('url ',url);
           generatePath(key,function(err){
             if(!err){
               runShellCommand('curl -O -L --fail --silent --show-error '+url,{'cwd':key},function(code,signal){
