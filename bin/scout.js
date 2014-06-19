@@ -1,14 +1,16 @@
 #!/usr/bin/env node
-var async = require('async');
-var fs            = require('fs');
-var findup        = require('findup-sync');
-var path          = require('path');
-var cwd           = process.cwd();
-var shell         = require('child_process').exec;
-var mkdirp        = require('mkdirp');
+var async         = require('async');
 var chalk         = require('chalk');
+var cwd           = process.cwd();
+var findup        = require('findup-sync');
+var fs            = require('fs');
+var https         = require('follow-redirects').https;
+var mkdirp        = require('mkdirp');
+var path          = require('path');
+var q             = require('q');
+var shell         = require('child_process').exec;
 var userArguments = process.argv.slice(2);
-var https = require('follow-redirects').https;
+
 var json;
 
 var configFile = findup('scoutfile.json', { cwd: cwd });
